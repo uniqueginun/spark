@@ -2,14 +2,14 @@ import { colors } from "@/constants/colors";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useState } from "react";
 import {
-    Modal,
-    Pressable,
-    ScrollView,
-    StyleProp,
-    StyleSheet,
-    Text,
-    View,
-    ViewStyle,
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleProp,
+  StyleSheet,
+  Text,
+  View,
+  ViewStyle,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -18,6 +18,7 @@ export type SelectFieldProps = {
   options: string[];
   placeholder?: string;
   style?: StyleProp<ViewStyle>;
+  value?: string;
   onValueChange?: (value: string) => void;
 };
 
@@ -26,14 +27,18 @@ export default function SelectField({
   options,
   placeholder = "Select an option",
   style,
+  value,
   onValueChange,
 }: SelectFieldProps) {
   const insets = useSafeAreaInsets();
   const [open, setOpen] = useState(false);
-  const [selected, setSelected] = useState("");
+  const [internalSelected, setInternalSelected] = useState("");
+  const selected = value ?? internalSelected;
 
   const select = (option: string) => {
-    setSelected(option);
+    if (value === undefined) {
+      setInternalSelected(option);
+    }
     onValueChange?.(option);
     setOpen(false);
   };
@@ -137,6 +142,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "bold",
     color: "white",
+    lineHeight: 20,
+    fontFamily: "Inter_400Regular",
+    fontStyle: "normal",
+    fontVariant: ["tabular-nums"],
+    textAlign: "left",
+    textAlignVertical: "top",
   },
   trigger: {
     flexDirection: "row",
@@ -146,7 +157,8 @@ const styles = StyleSheet.create({
     padding: 10,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: "white",
+    borderColor: colors.gray,
+    backgroundColor: "rgba(255,255,255,0.12)",
   },
   triggerPressed: {
     opacity: 0.85,
@@ -155,7 +167,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     lineHeight: 20,
-    color: "white",
+    color: colors.gray,
   },
   triggerPlaceholder: {
     color: colors.gray,
@@ -214,10 +226,17 @@ const styles = StyleSheet.create({
   },
   optionText: {
     fontSize: 16,
-    color: "rgba(255,255,255,0.9)",
+    color: colors.gray,
+    fontWeight: "400",
+    lineHeight: 20,
+    fontFamily: "Inter_400Regular",
+    fontStyle: "normal",
+    fontVariant: ["tabular-nums"],
+    textAlign: "left",
+    textAlignVertical: "top",
   },
   optionTextSelected: {
     fontWeight: "600",
-    color: "white",
+    color: colors.gray,
   },
 });

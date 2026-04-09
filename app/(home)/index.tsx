@@ -1,19 +1,45 @@
+import { fetchOnboarding as getOnboarding } from "@/services/onboardingService";
 import { Show, useClerk, useUser } from "@clerk/expo";
-import { Link, Redirect, RelativePathString } from "expo-router";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Link, useRouter } from "expo-router";
+import { useEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 
 export default function Page() {
   const { user } = useUser();
   const { signOut } = useClerk();
+  const [checking, setChecking] = useState(true);
+  const router = useRouter();
 
-  if (!user?.completed_on_boarding) {
-    return (
-      <Redirect href={"(onboarding)/complete-profile" as RelativePathString} />
-    );
-  }
+  useEffect(() => {
+    const fetchOnboarding = async () => {
+      try {
+        const { onboarded } = await getOnboarding(
+          user?.emailAddresses?.[0]?.emailAddress ?? "",
+        );
+
+        if (!onboarded) {
+          router.replace("/(onboarding)/complete-profile");
+        }
+      } catch (error) {
+        console.error(error);
+      } finally {
+        setChecking(false);
+      }
+    };
+    if (user?.emailAddresses?.[0]?.emailAddress) {
+      fetchOnboarding();
+    }
+  }, [user]);
 
   return (
     <View style={styles.container}>
+      {checking && <ActivityIndicator size="large" color="#0a7ea4" />}
       <Text style={styles.title}>Welcome!</Text>
       <Show when="signed-out">
         <Link href="/(auth)/sign-in">

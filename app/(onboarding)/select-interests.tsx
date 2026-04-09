@@ -1,68 +1,49 @@
 import { colors } from "@/constants/colors";
+import { fetchInterests as getInterests } from "@/services/onboardingService";
+import { useOnboardingStore } from "@/store/useOnboardingStore";
 import AntDesign from "@expo/vector-icons/AntDesign";
 import { LinearGradient } from "expo-linear-gradient";
-import { router } from "expo-router";
+import { RelativePathString, router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { useEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import AppButton from "../components/ui/AppButton";
 import StepIndicator from "../components/ui/StepIndicator";
 
-const interests = [
-  {
-    id: 1,
-    name: "Sports",
-    icon: "🏆",
-  },
-  {
-    id: 2,
-    name: "Reading",
-    icon: "📚",
-  },
-  {
-    id: 3,
-    name: "Coding",
-    icon: "💻",
-  },
-  {
-    id: 4,
-    name: "Design",
-    icon: "🎨",
-  },
-  {
-    id: 5,
-    name: "Photography",
-    icon: "📸",
-  },
-  {
-    id: 6,
-    name: "Travel",
-    icon: "🌍",
-  },
-  {
-    id: 7,
-    name: "Food",
-    icon: "🍔",
-  },
-  {
-    id: 8,
-    name: "Art",
-    icon: "🎨",
-  },
-  {
-    id: 9,
-    name: "Movies",
-    icon: "🎥",
-  },
-  {
-    id: 10,
-    name: "Gaming",
-    icon: "🎮",
-  },
-];
+export type Interest = {
+  id: number;
+  name: string;
+  icon: string;
+};
 
 export default function SelectInterests() {
   const [selectedInterests, setSelectedInterests] = useState<number[]>([]);
+  const { onboarding, setOnboarding } = useOnboardingStore();
+  const [interests, setInterests] = useState<Interest[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const fetchInterests = async () => {
+      try {
+        setLoading(true);
+        setInterests(await getInterests());
+      } catch (error) {
+        console.error(error);
+        Alert.alert("Error", "Failed to fetch interests", [{ text: "OK" }]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchInterests();
+  }, []);
 
   const handleSelectInterest = (interestId: number) => {
     if (selectedInterests.includes(interestId)) {
@@ -70,6 +51,15 @@ export default function SelectInterests() {
     } else {
       setSelectedInterests((prev) => [...prev, interestId]);
     }
+  };
+
+  const onSubmit = () => {
+    setOnboarding({
+      ...onboarding,
+      interests: selectedInterests,
+    });
+
+    router.push("/(onboarding)/set-location" as RelativePathString);
   };
 
   return (
@@ -99,28 +89,29 @@ export default function SelectInterests() {
         </View>
 
         <View style={styles.interestsContainer}>
-          {interests.map((interest) => (
-            <Pressable
-              key={interest.id}
-              style={[
-                styles.interest,
-                selectedInterests.includes(interest.id)
-                  ? styles.selectedInterest
-                  : {},
-              ]}
-              onPress={() => handleSelectInterest(interest.id)}
-            >
-              <Text style={styles.interestText}>
-                {interest.icon} {interest.name}
-              </Text>
-            </Pressable>
-          ))}
+          {loading ? (
+            <ActivityIndicator size="large" color={colors.primary} />
+          ) : (
+            interests.map((interest) => (
+              <Pressable
+                key={interest.id}
+                style={[
+                  styles.interest,
+                  selectedInterests.includes(interest.id)
+                    ? styles.selectedInterest
+                    : {},
+                ]}
+                onPress={() => handleSelectInterest(interest.id)}
+              >
+                <Text style={styles.interestText}>
+                  {interest.icon} {interest.name}
+                </Text>
+              </Pressable>
+            ))
+          )}
         </View>
 
-        <AppButton
-          style={{ marginTop: 50 }}
-          onPress={() => router.push("/(onboarding)/set-location")}
-        >
+        <AppButton style={{ marginTop: 50 }} onPress={onSubmit}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
             <Text style={styles.buttonText}>
               Continue {`(${selectedInterests.length} selected)`}

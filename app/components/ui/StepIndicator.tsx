@@ -2,7 +2,7 @@ import { colors } from "@/constants/colors";
 import { View } from "react-native";
 
 type Props = {
-  step: 1 | 2;
+  step: 1 | 2 | 3;
   total?: number;
 };
 
