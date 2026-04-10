@@ -6,7 +6,7 @@ import AntDesign from "@expo/vector-icons/AntDesign";
 import Entypo from "@expo/vector-icons/Entypo";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Location from "expo-location";
-import { RelativePathString, router } from "expo-router";
+import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useState } from "react";
 import {
@@ -74,7 +74,7 @@ export default function SetLocation() {
       Alert.alert("Success", response.message, [
         {
           text: "OK",
-          onPress: () => router.push("/(home)/index" as RelativePathString),
+          onPress: () => router.replace("/"),
         },
       ]);
     } catch (error) {
