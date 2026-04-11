@@ -1,4 +1,5 @@
 import { colors } from "@/constants/colors";
+import { useHomeStore } from "@/store/useHomeStore";
 import Entypo from "@expo/vector-icons/Entypo";
 import { Link } from "expo-router";
 import {
@@ -29,28 +30,32 @@ function StatCard({
 }
 
 export default function Index() {
+  const { currentUser } = useHomeStore();
+
+  const location = !!currentUser
+    ? JSON.parse(currentUser?.location! as unknown as string)
+    : { city: "", principalSubdivision: "", countryName: "" };
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <Text style={styles.title}>Profile</Text>
 
       <View style={styles.profileHeader}>
-        <Image
-          source={require("@/assets/images/favicon.png")}
-          style={styles.image}
-        />
-        <Text style={styles.name}>John Doe</Text>
-        <Text style={styles.email}>john.doe@example.com</Text>
+        <Image source={{ uri: currentUser?.image_url }} style={styles.image} />
+        <Text style={styles.name}>
+          {currentUser?.first_name} {currentUser?.last_name}
+        </Text>
+        <Text style={styles.email}>{currentUser?.email}</Text>
         <View style={styles.locationContainer}>
           <Entypo name="location-pin" size={18} color={colors.gray} />
-          <Text style={styles.locationValue}>New York, NY</Text>
+          <Text style={styles.locationValue}>
+            {location.city}, {location.principalSubdivision}
+          </Text>
         </View>
       </View>
 
       <View style={styles.card}>
-        <Text style={styles.bioValue}>
-          I'm a software engineer at Google. I love to code and build things.
-          I'm a software engineer at Google. I love to code and build things.
-        </Text>
+        <Text style={styles.bioValue}>{currentUser?.bio || "No bio yet"}</Text>
       </View>
 
       <View style={styles.statContainer}>
@@ -62,26 +67,26 @@ export default function Index() {
       <View style={styles.interests}>
         <Text style={styles.interestsTitle}>Interests</Text>
         <View style={styles.interestsContainer}>
-          <Text style={styles.interest}>Coding</Text>
-          <Text style={styles.interest}>Reading</Text>
-          <Text style={styles.interest}>Writing</Text>
-          <Text style={styles.interest}>Gaming</Text>
-          <Text style={styles.interest}>Music</Text>
-          <Text style={styles.interest}>Movies</Text>
-          <Text style={styles.interest}>TV</Text>
-          <Text style={styles.interest}>Sports</Text>
-          <Text style={styles.interest}>Travel</Text>
+          {currentUser?.interests.map((interest) => (
+            <Text style={styles.interest} key={interest.id}>
+              {interest.icon} {interest.name}
+            </Text>
+          ))}
         </View>
       </View>
 
       <View style={styles.actionGroup}>
         <Link href="/(tabs)/profile/edit-profile" style={styles.link}>
-          <Text style={styles.linkText}>Edit Profile</Text>
-          <Entypo name="chevron-right" size={18} color={colors.gray} />
+          <View style={styles.linkContent}>
+            <Text style={styles.linkText}>Edit Profile</Text>
+            <Entypo name="chevron-right" size={18} color={colors.gray} />
+          </View>
         </Link>
         <Link href="/(tabs)/profile/privacy-safty" style={styles.link}>
-          <Text style={styles.linkText}>Privacy & Safety</Text>
-          <Entypo name="chevron-right" size={18} color={colors.gray} />
+          <View style={styles.linkContent}>
+            <Text style={styles.linkText}>Privacy & Safety</Text>
+            <Entypo name="chevron-right" size={18} color={colors.gray} />
+          </View>
         </Link>
       </View>
     </ScrollView>
@@ -95,7 +100,7 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingHorizontal: 20,
-    paddingTop: 70,
+    paddingTop: 20,
     paddingBottom: 100,
     gap: 20,
   },
@@ -215,6 +220,13 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    width: "100%",
+  },
+  linkContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    width: "100%",
     gap: 8,
   },
   linkText: {
