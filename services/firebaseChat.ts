@@ -45,5 +45,5 @@ export function sendTypingStatus(eventId: number, user: any) {
 
   typingTimeout = setTimeout(() => {
     remove(typingRef);
-  }, 5000);
+  }, 1000);
 }
