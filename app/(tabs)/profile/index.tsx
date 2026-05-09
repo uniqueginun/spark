@@ -1,7 +1,10 @@
+import AppButton from "@/app/components/ui/AppButton";
 import { colors } from "@/constants/colors";
 import { useHomeStore } from "@/store/useHomeStore";
+import { useClerk } from "@clerk/expo";
 import Entypo from "@expo/vector-icons/Entypo";
-import { Link } from "expo-router";
+import { Link, useRouter } from "expo-router";
+
 import {
   Image,
   ScrollView,
@@ -31,6 +34,13 @@ function StatCard({
 
 export default function Index() {
   const { currentUser } = useHomeStore();
+  const { signOut } = useClerk();
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    await signOut();
+    router.replace("/(auth)/sign-in");
+  };
 
   const location = !!currentUser
     ? JSON.parse(currentUser?.location! as unknown as string)
@@ -82,13 +92,17 @@ export default function Index() {
             <Entypo name="chevron-right" size={18} color={colors.gray} />
           </View>
         </Link>
-        <Link href="/(tabs)/profile/privacy-safty" style={styles.link}>
+        <Link href="/(tabs)/profile/privacy-safety" style={styles.link}>
           <View style={styles.linkContent}>
             <Text style={styles.linkText}>Privacy & Safety</Text>
             <Entypo name="chevron-right" size={18} color={colors.gray} />
           </View>
         </Link>
       </View>
+
+      <AppButton onPress={handleLogout}>
+        <Text style={styles.logoutButtonText}>Logout</Text>
+      </AppButton>
     </ScrollView>
   );
 }
@@ -230,6 +244,11 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   linkText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  logoutButtonText: {
     color: "white",
     fontSize: 16,
     fontWeight: "600",

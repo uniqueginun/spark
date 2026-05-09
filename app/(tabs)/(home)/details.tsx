@@ -1,23 +1,34 @@
 import AppButton from "@/app/components/ui/AppButton";
 import { colors } from "@/constants/colors";
-import { fetchActivityById } from "@/services/activitiesService";
+import {
+  cancelActivity,
+  deleteActivity,
+  favoriteActivity,
+  fetchActivityById,
+  toggleJoinActivity,
+} from "@/services/activitiesService";
+import { getLocationInfo } from "@/services/locationService";
+import { useUser } from "@clerk/expo";
 import AntDesign from "@expo/vector-icons/AntDesign";
 import Entypo from "@expo/vector-icons/Entypo";
 import Feather from "@expo/vector-icons/Feather";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import Octicons from "@expo/vector-icons/Octicons";
+import * as Location from "expo-location";
 import { Link, router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Image,
-    Platform,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Text,
-    View,
+  ActivityIndicator,
+  Alert,
+  Image,
+  Platform,
+  Pressable,
+  ScrollView,
+  Share,
+  StyleSheet,
+  Text,
+  View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ActivityDetails } from ".";
@@ -27,19 +38,156 @@ export default function Details() {
   const insets = useSafeAreaInsets();
   const [activity, setActivity] = useState<ActivityDetails | null>(null);
   const [loading, setLoading] = useState(true);
+  const { user: clerkUser } = useUser();
+  const [joinActivityLoading, setJoinActivityLoading] = useState(false);
+  const [cancelActivityLoading, setCancelActivityLoading] = useState(false);
+  const [deleteActivityLoading, setDeleteActivityLoading] = useState(false);
+  const [eventLocation, setEventLocation] = useState<string | null>(null);
+
+  const getEventLocation = async (coords: any) => {
+    const { city, principalSubdivision } = await getLocationInfo({
+      coords,
+      mocked: false,
+      timestamp: Date.now(),
+    } as Location.LocationObject);
+
+    setEventLocation(`${city}, ${principalSubdivision}`);
+  };
 
   useEffect(() => {
-    const fetchActivity = async () => {
-      const data = await fetchActivityById(activityId as string);
-      setActivity(data);
-      setLoading(false);
+    const fetchData = async () => {
+      try {
+        const data = await fetchActivityById(activityId as string);
+        setActivity(data);
+        await getEventLocation(data.area_location);
+      } catch (error) {
+        console.error(error);
+      } finally {
+        setLoading(false);
+      }
     };
-    void fetchActivity();
+
+    fetchData();
   }, [activityId]);
 
   if (loading) {
     return <ActivityIndicator size="large" color="#0a7ea4" />;
   }
+
+  const userEmail = clerkUser?.emailAddresses[0].emailAddress;
+
+  const isMine = activity?.organizer?.email === userEmail;
+
+  const isJoined = activity?.participants?.some(
+    (participant) => participant.email === userEmail,
+  );
+
+  const handleJoinActivity = async () => {
+    if (!userEmail) return;
+
+    try {
+      setJoinActivityLoading(true);
+
+      const freshActivity = await toggleJoinActivity(
+        activity?.id as number,
+        userEmail,
+      );
+      setActivity(freshActivity);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setJoinActivityLoading(false);
+    }
+  };
+
+  const handleCancelActivity = () => {
+    if (!activity?.id || cancelActivityLoading || deleteActivityLoading) return;
+
+    const isVisible = activity.is_visible;
+
+    Alert.alert(
+      isVisible ? "Cancel activity?" : "Reopen activity?",
+      isVisible
+        ? "Participants will no longer be able to join."
+        : "Participants will be able to discover and join again.",
+      [
+        { text: "Keep", style: "cancel" },
+        {
+          text: isVisible ? "Cancel activity" : "Reopen activity",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              setCancelActivityLoading(true);
+              const updatedActivity = await cancelActivity(activity.id);
+              setActivity(updatedActivity);
+            } catch (error) {
+              console.error(error);
+            } finally {
+              setCancelActivityLoading(false);
+            }
+          },
+        },
+      ],
+    );
+  };
+
+  const handleHeartPress = async () => {
+    const updatedActivity = await favoriteActivity(activity?.id as number);
+
+    setActivity(updatedActivity);
+  };
+
+  const handleSharePress = async () => {
+    const activityId = activity?.id;
+
+    const message = `Check this activity 👇\n https://yourapp.com/activity/${activityId}`;
+
+    console.log("Sharing activity with message:", message);
+
+    try {
+      await Share.share({
+        message,
+      });
+    } catch (error: any) {
+      Alert.alert(error.message);
+    }
+  };
+
+  const handleChatPress = () => {
+    if (!isJoined && !isMine) {
+      Alert.alert("Join the activity to access the chat.");
+      return;
+    }
+
+    router.push(`/chat?activityId=${activity?.id}`);
+  };
+
+  const handleDeleteActivity = () => {
+    if (!activity?.id || deleteActivityLoading || cancelActivityLoading) return;
+
+    Alert.alert(
+      "Delete activity?",
+      "This action is permanent and cannot be undone.",
+      [
+        { text: "Keep", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              setDeleteActivityLoading(true);
+              await deleteActivity(activity.id);
+              router.dismissTo("/(tabs)/(home)");
+            } catch (error) {
+              console.error(error);
+            } finally {
+              setDeleteActivityLoading(false);
+            }
+          },
+        },
+      ],
+    );
+  };
 
   return (
     <ScrollView
@@ -73,8 +221,23 @@ export default function Details() {
               styles.headerIconButton,
               pressed && styles.headerIconPressed,
             ]}
+            onPress={handleSharePress}
           >
             <Feather name="share-2" size={22} color={colors.gray} />
+          </Pressable>
+          <Pressable
+            hitSlop={12}
+            onPress={handleHeartPress}
+            style={({ pressed }) => [
+              styles.headerIconButton,
+              pressed && styles.headerIconPressed,
+            ]}
+          >
+            <Feather
+              name="heart"
+              size={22}
+              color={activity?.hearted_by_user ? "red" : colors.gray}
+            />
           </Pressable>
           <Pressable
             hitSlop={12}
@@ -82,8 +245,9 @@ export default function Details() {
               styles.headerIconButton,
               pressed && styles.headerIconPressed,
             ]}
+            onPress={handleChatPress}
           >
-            <Feather name="heart" size={22} color={colors.gray} />
+            <AntDesign name="message" size={22} color={colors.gray} />
           </Pressable>
         </View>
       </View>
@@ -130,7 +294,7 @@ export default function Details() {
             </View>
             <View style={styles.detailTextBlock}>
               <Text style={styles.detailPrimary}>
-                {activity?.location_description || "Unknown Location"}
+                {eventLocation || "Unknown Location"}
               </Text>
               <Text style={styles.detailSecondary}>
                 {activity?.distance_from_user}m away
@@ -156,8 +320,7 @@ export default function Details() {
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Participants</Text>
-        {activity?.participants?.length &&
-        activity?.participants?.length > 0 ? (
+        {(activity?.participants?.length ?? 0) > 0 ? (
           <View style={styles.participantsRow}>
             {activity?.participants.map((participant, i) => (
               <View key={i} style={styles.participantAvatarWrap}>
@@ -182,11 +345,48 @@ export default function Details() {
         </Text>
       </View>
 
-      {activity?.left_spots && activity?.left_spots > 0 && (
-        <AppButton onPress={() => {}} style={styles.joinButton}>
-          <Text style={styles.joinButtonText}>Join Activity</Text>
-        </AppButton>
-      )}
+      <View
+        style={{
+          paddingBottom: 100,
+        }}
+      >
+        {Number(activity?.left_spots) > 0 && !isMine && (
+          <AppButton
+            onPress={handleJoinActivity}
+            style={styles.joinButton}
+            disabled={joinActivityLoading}
+            loading={joinActivityLoading}
+          >
+            <Text style={styles.joinButtonText}>
+              {isJoined ? "Leave Activity" : "Join Activity"}
+            </Text>
+          </AppButton>
+        )}
+
+        {isMine && (
+          <AppButton
+            onPress={handleCancelActivity}
+            style={styles.joinButton}
+            loading={cancelActivityLoading}
+            disabled={cancelActivityLoading || deleteActivityLoading}
+          >
+            <Text style={styles.joinButtonText}>
+              {activity?.is_visible ? "Cancel Activity" : "Reopen Activity"}
+            </Text>
+          </AppButton>
+        )}
+
+        {isMine && (
+          <AppButton
+            onPress={handleDeleteActivity}
+            style={styles.secondaryButton}
+            loading={deleteActivityLoading}
+            disabled={deleteActivityLoading || cancelActivityLoading}
+          >
+            <Text style={styles.joinButtonText}>Delete Activity</Text>
+          </AppButton>
+        )}
+      </View>
     </ScrollView>
   );
 }
@@ -392,8 +592,8 @@ const styles = StyleSheet.create({
   },
   participantAvatarWrap: {
     borderRadius: 22,
-    borderWidth: 2,
-    borderColor: "#141414",
+    borderWidth: 1,
+    borderColor: colors.primary,
     overflow: "hidden",
   },
   participantAvatarOverlap: {
@@ -406,6 +606,9 @@ const styles = StyleSheet.create({
   },
   joinButton: {
     marginTop: 28,
+  },
+  secondaryButton: {
+    marginTop: 12,
   },
   joinButtonText: {
     fontSize: 17,

@@ -8,6 +8,9 @@ export type User = {
   last_name: string;
   email: string;
   image_url: string;
+  bio?: string | null;
+  dob?: string | null;
+  gender?: "male" | "female" | "other" | null;
   onboarded: boolean;
   interests: Interest[];
   location: {

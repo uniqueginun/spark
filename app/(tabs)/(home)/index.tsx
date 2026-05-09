@@ -38,12 +38,19 @@ export type SimpleUser = {
   id: number;
   name: string;
   image_url: string;
+  email: string;
 };
 
 export type ActivityDetails = Activity & {
   participants: SimpleUser[];
   organizer: SimpleUser;
   max_participants: number;
+  is_visible: boolean;
+  area_location: {
+    latitude: number;
+    longitude: number;
+  };
+  hearted_by_user: boolean;
 };
 
 export default function Page() {

@@ -4,7 +4,14 @@ import Octicons from "@expo/vector-icons/Octicons";
 import { Platform, StyleSheet, Text, View } from "react-native";
 import { Activity } from "../(tabs)/(home)";
 
-export default function ActivityItem({ activity }: { activity: Activity }) {
+export default function ActivityItem({
+  activity,
+  omitDistance,
+}: {
+  activity: Activity;
+  /** Hide distance (e.g. for activities you host). */
+  omitDistance?: boolean;
+}) {
   return (
     <View style={styles.card}>
       <View style={styles.header}>
@@ -28,14 +35,20 @@ export default function ActivityItem({ activity }: { activity: Activity }) {
       <View style={styles.footer}>
         <View
           style={styles.metaGroup}
-          accessibilityLabel={`${activity.distance_from_user} kilometers away, today at ${activity.formatted_start_at}`}
+          accessibilityLabel={
+            omitDistance
+              ? activity.formatted_start_at
+              : `${activity.distance_from_user} kilometers away, today at ${activity.formatted_start_at}`
+          }
         >
-          <View style={styles.metaChip}>
-            <FontAwesome name="map-marker" size={14} color={colors.gray} />
-            <Text style={styles.metaText}>
-              {activity.distance_from_user} km
-            </Text>
-          </View>
+          {!omitDistance ? (
+            <View style={styles.metaChip}>
+              <FontAwesome name="map-marker" size={14} color={colors.gray} />
+              <Text style={styles.metaText}>
+                {activity.distance_from_user} km
+              </Text>
+            </View>
+          ) : null}
           <View style={styles.metaChip}>
             <FontAwesome name="clock-o" size={14} color={colors.gray} />
             <Text style={styles.metaText} numberOfLines={1}>

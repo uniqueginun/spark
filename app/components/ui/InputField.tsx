@@ -1,4 +1,3 @@
-import { colors } from "@/constants/colors";
 import {
     StyleSheet,
     Text,
@@ -32,14 +31,14 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 16,
     fontWeight: "bold",
-    color: colors.gray,
+    color: "rgba(255,255,255,0.88)",
   },
   input: {
     padding: 10,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: colors.gray,
-    color: colors.gray,
+    borderColor: "rgba(255,255,255,0.22)",
+    color: "rgba(255,255,255,0.92)",
     backgroundColor: "rgba(255,255,255,0.12)",
     fontSize: 16,
     lineHeight: 20,

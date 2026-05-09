@@ -9,4 +9,18 @@ const apiClient = axios.create({
   },
 });
 
+export const attachAuthInterceptor = (
+  getToken: () => Promise<string | null>,
+) => {
+  apiClient.interceptors.request.use(async (config) => {
+    const token = await getToken();
+
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+
+    return config;
+  });
+};
+
 export default apiClient;

@@ -1,15 +1,25 @@
 import { colors } from "@/constants/colors";
 import { LinearGradient } from "expo-linear-gradient";
-import { Pressable, StyleProp, StyleSheet, ViewStyle } from "react-native";
+import {
+  ActivityIndicator,
+  Pressable,
+  StyleProp,
+  StyleSheet,
+  ViewStyle,
+} from "react-native";
 
 export default function AppButton({
   children,
   onPress,
   style,
+  disabled,
+  loading,
 }: {
   children: React.ReactNode;
   onPress: () => void;
   style?: StyleProp<ViewStyle>;
+  disabled?: boolean;
+  loading?: boolean;
 }) {
   return (
     <LinearGradient
@@ -19,7 +29,9 @@ export default function AppButton({
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
     >
-      <Pressable onPress={onPress}>{children}</Pressable>
+      <Pressable onPress={onPress} disabled={disabled || loading}>
+        {loading ? <ActivityIndicator size="small" color="#fff" /> : children}
+      </Pressable>
     </LinearGradient>
   );
 }
